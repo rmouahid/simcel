@@ -49,7 +49,7 @@ Projet réalisé dans le cadre du cours de Génie Logiciel — cursus ingénieur
 ## Installation
 
 ```bash
-git clone https://github.com/LePhyX/simcel.git
+git clone https://github.com/rmouahid/simcel.git
 cd simcel
 ```
 
@@ -172,5 +172,5 @@ Disponibles dans [`docs/uml/`](docs/uml/) (sources PlantUML dans [`docs/uml/puml
 
 ## Équipe
 
-- [Rayân MOUAHID](https://github.com/LePhyX)
+- [Rayân MOUAHID](https://github.com/rmouahid)
 - [Sofiane HOUMMASS](https://github.com/sofianehms)
