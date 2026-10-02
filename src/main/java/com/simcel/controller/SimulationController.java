@@ -123,6 +123,15 @@ public class SimulationController {
     }
 
     /**
+     * Retourne l'état courant de la simulation.
+     *
+     * @return état, jamais {@code null}
+     */
+    public SimulationState getState() {
+        return state;
+    }
+
+    /**
      * Sauvegarde l'état courant dans un fichier binaire.
      *
      * @param file fichier destination

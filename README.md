@@ -149,9 +149,22 @@ FireSimulator.tick()
 
 ```bash
 mvn compile          # Compilation
+mvn test             # Tests JUnit 5
 mvn package          # Génération du JAR (target/)
 mvn javadoc:javadoc  # Javadoc → target/site/apidocs/
 ```
+
+### Tests
+
+Les tests JUnit 5 (`src/test/java`) couvrent :
+
+- `FireSimulator` : probabilité d'inflammation (type de terrain, humidité, vent arrière, contraire, latéral et diagonal, plafonnement à 1), transitions d'état (propagation aux 8 voisins, double buffering, durée de combustion, cellules vides ou brûlées), historique (retour arrière, limite de 100 états), listeners et snapshots ;
+- `Grid` : dimensions, voisinage de Moore aux bords, initialisation aléatoire, réinitialisation, copies profondes ;
+- `SimulationController` : cycle IDLE → RUNNING → PAUSED, pas à pas, retour arrière, reset, sauvegarde et chargement.
+
+Le tirage aléatoire de `FireSimulator` peut être injecté (constructeur de paquet) pour rendre la propagation déterministe.
+
+La CI GitHub Actions ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) exécute `mvn test` sur chaque push et pull request vers `main` et `develop`.
 
 ---
 

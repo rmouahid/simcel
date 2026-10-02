@@ -49,10 +49,22 @@ public class FireSimulator {
      * @param environment conditions environnementales, non {@code null}
      */
     public FireSimulator(Grid grid, Environment environment) {
+        this(grid, environment, new Random());
+    }
+
+    /**
+     * Crée un simulateur dont le tirage aléatoire est fourni par l'appelant,
+     * ce qui rend la propagation reproductible (tests).
+     *
+     * @param grid grille de simulation, non {@code null}
+     * @param environment conditions environnementales, non {@code null}
+     * @param random générateur utilisé pour les tirages de propagation
+     */
+    FireSimulator(Grid grid, Environment environment, Random random) {
         this.grid = grid;
         this.environment = environment;
         this.listeners = new ArrayList<>();
-        this.random = new Random();
+        this.random = random;
         this.currentTick = 0;
     }
 
@@ -102,7 +114,7 @@ public class FireSimulator {
      * @param tgt  cellule cible (candidate à l'inflammation)
      * @return probabilité dans {@code [0.0, 1.0]}
      */
-    private double computeInflammationProbability(int srcX, int srcY, int tgtX, int tgtY, Cell tgt) {
+    double computeInflammationProbability(int srcX, int srcY, int tgtX, int tgtY, Cell tgt) {
         double base = tgt.getType().getInflammability();
         double windFactor = applyWindFactor(tgtX - srcX, tgtY - srcY);
         double p = applyHumidityFactor(base * windFactor);
