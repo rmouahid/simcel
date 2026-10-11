@@ -18,14 +18,15 @@ Projet réalisé dans le cadre du cours de Génie Logiciel — cursus ingénieur
 
 ### Contrôle
 
-- Démarrer / Pause / Step avant / Step arrière / Stop / Reset
-- Vitesse de simulation ajustable (délai entre ticks)
+- Démarrer / Pause / Pas avant / Pas arrière / Reset (retour à l'état initial)
+- Vitesse de simulation ajustable (délai entre deux ticks, de 50 à 1000 ms)
+- Nouvelle grille aux dimensions choisies (largeur 10–300, hauteur 10–200)
 - Sauvegarde et chargement d'une simulation (format binaire `.simcel`)
 
 ### Interface graphique (JavaFX)
 
 - Rendu de la grille sur Canvas avec zoom (×0.2 à ×8, centré sur le curseur) et panoramique (clic-glisser)
-- 9 outils d'édition : modifier le type de terrain ou l'état de n'importe quelle cellule à la souris
+- Mode édition avec 9 outils : forêt, prairie, broussailles, zone humide, zone urbaine, effacer (vide), eau, rocher et foyer (allume un feu), appliqués à la souris sur n'importe quelle cellule
 - Statistiques en temps réel : tick, compteurs SAIN / EN_FEU / BRÛLÉ, taux de destruction
 - Courbe d'évolution dynamique (3 séries, fenêtre glissante de 300 points)
 - Indicateur de vent : boussole animée, force et humidité
@@ -34,7 +35,8 @@ Projet réalisé dans le cadre du cours de Génie Logiciel — cursus ingénieur
 ### Mode console (headless)
 
 - Rendu ANSI dans le terminal
-- Commandes interactives : `wind`, `humidity`, `speed`, `help`
+- Commandes interactives pendant la simulation : `wind <direction> <force>` (ex. `wind NE 3`), `humidity <0–100>`, `speed <ms>`, `help`
+- La simulation s'arrête d'elle-même au bout de `--ticks` ticks ou quand plus aucune cellule ne brûle
 
 ---
 
@@ -51,6 +53,33 @@ Projet réalisé dans le cadre du cours de Génie Logiciel — cursus ingénieur
 ```bash
 git clone https://github.com/rmouahid/simcel.git
 cd simcel
+mvn compile        # télécharge les dépendances (JavaFX, JUnit) au premier lancement
+```
+
+Aucune autre installation n'est nécessaire : JavaFX est une dépendance Maven,
+pas un SDK à installer à part.
+
+---
+
+## Structure du projet
+
+```
+simcel/
+├── pom.xml                       build Maven (Java 21, JavaFX 21, JUnit 5)
+├── launchers/
+│   ├── run-gui.sh                compile puis lance l'interface graphique
+│   └── run-cli.sh                compile puis lance le mode console
+├── templates/
+│   └── template1.simcel          simulation d'exemple à ouvrir avec « Charger »
+├── docs/
+│   ├── uml/                      diagrammes UML (PNG) et leurs sources PlantUML (puml/)
+│   └── Livrables/                sujet, spécification, milestones et rapport final (PDF)
+├── src/main/java/com/simcel/
+│   ├── Main.java                 point d'entrée : GUI par défaut, console avec --headless
+│   ├── model/                    grille, cellules, environnement, moteur de propagation, sauvegarde
+│   ├── view/                     fenêtre JavaFX, canvas, statistiques, courbe, boussole, console
+│   └── controller/               SimulationController : cycle de vie et thread de simulation
+└── src/test/java/com/simcel/     tests JUnit 5 (modèle et contrôleur)
 ```
 
 ---
@@ -66,6 +95,12 @@ bash launchers/run-gui.sh
 ```
 
 Paramètres par défaut : grille 50×30, 60 % forêt / 20 % prairie / 10 % broussailles / 5 % zone humide / 5 % zone urbaine, feu déclenché au centre, délai 200 ms.
+
+Pour partir d'un scénario prêt, cliquez sur **Charger** et ouvrez
+`templates/template1.simcel` (grille 50×30, la taille par défaut : il se
+charge directement au lancement). Un fichier ne se charge que dans une
+grille de mêmes dimensions ; sinon, le message « Fichier incompatible »
+s'affiche : créez d'abord une grille de la bonne taille.
 
 ### Mode console (headless)
 
@@ -149,10 +184,16 @@ FireSimulator.tick()
 
 ```bash
 mvn compile          # Compilation
-mvn test             # Tests JUnit 5
-mvn package          # Génération du JAR (target/)
+mvn test             # Tests JUnit 5 (54 tests)
+mvn package          # JAR des classes compilées (target/simcel-1.0-SNAPSHOT.jar)
 mvn javadoc:javadoc  # Javadoc → target/site/apidocs/
 ```
+
+Le JAR produit par `mvn package` contient uniquement les classes du projet,
+sans JavaFX ni classe principale déclarée : il ne se lance pas avec
+`java -jar`. Pour exécuter l'application, utilisez `mvn javafx:run`,
+`mvn exec:java` ou les scripts de `launchers/`, qui fournissent le classpath
+complet.
 
 ### Tests
 
@@ -170,16 +211,57 @@ La CI GitHub Actions ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) ex
 
 ## Diagrammes UML
 
-Disponibles dans [`docs/uml/`](docs/uml/) (sources PlantUML dans [`docs/uml/puml/`](docs/uml/puml/)).
+Sources PlantUML dans [`docs/uml/puml/`](docs/uml/puml/), images générées dans [`docs/uml/`](docs/uml/).
+
+### Diagramme de classes
+
+![Diagramme de classes](docs/uml/diagramme_classes.png)
+
+### Cas d'utilisation
+
+![Diagramme de cas d'utilisation](docs/uml/diagramme_cas_utilisation.png)
+
+### Séquence d'un tick
+
+![Diagramme de séquence](docs/uml/diagramme_sequence.png)
+
+### États de la simulation
+
+![Diagramme d'états-transitions](docs/uml/diagramme_etats_transitions.png)
+
+---
+
+## Documents du projet
+
+Dans [`docs/Livrables/`](docs/Livrables/) : le sujet
+(`PGL_ING1_Cellules_2D_2025_2026-1.pdf`), la spécification
+(`specification_simulation_feu.pdf`), le découpage en milestones et issues
+(`milestones_issues_simulation_feu.pdf`) et le rapport final
+(`rapport_simcel.pdf`).
+
+---
+
+## Dépannage
+
+| Problème | Solution |
+| --- | --- |
+| `UnsupportedClassVersionError` ou erreur de compilation sur les `switch` | Le projet exige Java 21 : vérifiez `java -version` et `mvn -version` (le JDK utilisé par Maven) |
+| L'interface ne s'ouvre pas sur un serveur ou dans un conteneur sans écran | JavaFX a besoin d'un affichage ; utilisez le mode console (`--headless`) |
+| `no main manifest attribute` avec `java -jar` | Normal : lancez l'application via Maven ou `launchers/` (voir Build) |
+| « Fichier incompatible » au chargement d'un `.simcel` | Ses dimensions diffèrent de la grille actuelle : créez une grille de même taille, puis rechargez |
+| Couleurs illisibles en mode console | Le rendu utilise les codes ANSI : utilisez un terminal qui les gère (la plupart des terminaux Linux/macOS, Windows Terminal) |
 
 ---
 
 ## Convention de branches
 
-| Branche           | Usage                |
-| ----------------- | -------------------- |
-| `main`            | Code stable livrable |
-| `dev` / `develop` | Intégration continue |
+| Branche           | Usage                                                     |
+| ----------------- | --------------------------------------------------------- |
+| `main`            | Code stable livrable                                      |
+| `develop`         | Intégration continue (cible des pull requests)            |
+| `feature/*`       | Une fonctionnalité ou une correction, partant de `develop` |
+
+Les messages de commit suivent les [Conventional Commits](https://www.conventionalcommits.org/) (`feat:`, `fix:`, `docs:`, `test:`…).
 
 ---
 
