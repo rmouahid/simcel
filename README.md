@@ -269,3 +269,7 @@ Les messages de commit suivent les [Conventional Commits](https://www.convention
 
 - [Rayân MOUAHID](https://github.com/rmouahid)
 - [Sofiane HOUMMASS](https://github.com/sofianehms)
+
+## Licence
+
+Distribué sous licence MIT. Voir [LICENSE](LICENSE).
