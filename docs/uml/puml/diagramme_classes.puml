@@ -11,7 +11,7 @@ skinparam classHeaderBackgroundColor #EEEEEE
 skinparam noteBackgroundColor #FFFDE7
 skinparam noteBorderColor #C8A800
 
-title Diagramme de classes — Simulation de propagation de feu\nIssue #10 · M1 · Suite du modèle · v2.1
+title Diagramme de classes — Simulation de propagation de feu\nIssue #35 · version finale · v3.0
 
 ' ───────────────────────────────────────────────
 ' LÉGENDE
@@ -24,7 +24,7 @@ legend top right
 | <back:#E1BEE7>Vue</back> | Vue |
 | ─►  | dépendance |
 | ◆──  | composition |
-| ──▷  | implémentation |
+| ──▷  | implémentation / héritage |
 endlegend
 
 ' ───────────────────────────────────────────────
@@ -72,9 +72,21 @@ enum SimulationState #FFF8DC {
 ' ───────────────────────────────────────────────
 ' INTERFACE
 ' ───────────────────────────────────────────────
-interface SimulationListener <<interface>> #E8F5E9 {
+interface SimulationListener <<FunctionalInterface>> #E8F5E9 {
   + onTick(tick : int, grid : Grid) : void
-  + onSimulationEnd() : void
+}
+
+interface Serializable <<java.io>> #EEEEEE
+
+' ───────────────────────────────────────────────
+' POINT D'ENTRÉE
+' ───────────────────────────────────────────────
+class Main #EEEEEE {
+  ..
+  + start(stage : Stage) : void
+  + {static} main(args : String[]) : void
+  - {static} runCLI(args : String[]) : void
+  - {static} hasActiveFire(grid : Grid) : boolean
 }
 
 ' ───────────────────────────────────────────────
@@ -97,12 +109,16 @@ class Cell #C8E6C9 {
 }
 
 class Environment #C8E6C9 {
+  + {static} MIN_WIND : int = 0
+  + {static} MAX_WIND : int = 5
+  + {static} MIN_HUMIDITY : int = 0
+  + {static} MAX_HUMIDITY : int = 100
   - direction : WindDirection
   - windStrength : int
   - humidity : int
   ..
   + Environment()
-  + Environment(d, w, h)
+  + Environment(d : WindDirection, w : int, h : int)
   + getDirection() : WindDirection
   + getWindStrength() : int
   + getHumidity() : int
@@ -122,7 +138,7 @@ class Grid #C8E6C9 {
   + getCell(x, y) : Cell
   + setCell(x, y, c : Cell) : void
   + getNeighbors(x, y) : List<Cell>
-  + initRandom(...) : void
+  + initRandom(foret, prairie, broussailles, humide, urbaine : double) : void
   + saveInitialState() : void
   + reset() : void
   + setFire(x, y) : void
@@ -162,7 +178,7 @@ class SimulationSnapshot #C8E6C9 {
   - humidity : int
   - tick : int
   ..
-  + SimulationSnapshot(...)
+  + SimulationSnapshot(w, h : int, cells, init : Cell[][], env : Environment, tick : int)
   + getWidth() : int
   + getHeight() : int
   + getCells() : Cell[][]
@@ -173,7 +189,8 @@ class SimulationSnapshot #C8E6C9 {
   + getTick() : int
 }
 
-class SimulationIO #C8E6C9 {
+class SimulationIO <<final>> #C8E6C9 {
+  - SimulationIO()
   ..
   + {static} save(f : File, s : SimulationSnapshot) : void
   + {static} load(f : File) : SimulationSnapshot
@@ -197,6 +214,7 @@ class SimulationController #FFE0B2 {
   + stepBack() : boolean
   + setTickDelay(ms : int) : void
   + getTickDelay() : int
+  + getState() : SimulationState
   + saveToFile(f : File) : void
   + loadFromFile(f : File) : void
 }
@@ -208,42 +226,59 @@ class MainWindow #E1BEE7 {
   - simulator : FireSimulator
   - controller : SimulationController
   - grid : Grid
+  - editMode : boolean
+  - selectedTool : EditTool
   ..
-  + MainWindow(sim, ctrl)
+  + MainWindow(sim : FireSimulator, ctrl : SimulationController)
   + show(stage : Stage) : void
+  + resetView() : void
+  - reinitialize(width : int, height : int) : void
+  - paintCellAt(x, y : double) : void
 }
 
-class GridView #E1BEE7 {
+class HeaderBar <<HBox>> #E1BEE7 {
+  ..
+  + HeaderBar(save, load : Button, w : int, h : int)
+  + setRunning(running : boolean) : void
+  + setGridSize(w : int, h : int) : void
+  + resetTick() : void
+  + onTick(tick : int, grid : Grid) : void
+}
+
+class GridView <<Canvas>> <<final>> #E1BEE7 {
   - cellSize : double
   ..
   + GridView(grid : Grid, cellSize : double)
   + onTick(tick : int, grid : Grid) : void
-  + onSimulationEnd() : void
   + refresh(grid : Grid) : void
-  + getCellAt(x, y) : int[]
+  + getCellAt(px, py : double) : int[]
+  + getCellSize() : double
 }
 
-class StatisticsPanel #E1BEE7 {
+class StatisticsPanel <<VBox>> #E1BEE7 {
   ..
+  + StatisticsPanel()
   + onTick(tick : int, grid : Grid) : void
-  + onSimulationEnd() : void
   + reset() : void
 }
 
-class ChartView #E1BEE7 {
+class ChartView <<Canvas>> #E1BEE7 {
+  - {static} MAX_POINTS : int = 300
   ..
+  + ChartView(width, height : double)
+  + resize(w, h : double) : void
   + onTick(tick : int, grid : Grid) : void
-  + onSimulationEnd() : void
   + clear() : void
   + removeLastPoint() : void
 }
 
-class LegendPanel #E1BEE7 {
+class LegendPanel <<HBox>> #E1BEE7 {
   ..
   + LegendPanel()
 }
 
-class WindIndicator #E1BEE7 {
+class WindIndicator <<VBox>> #E1BEE7 {
+  - env : Environment
   ..
   + WindIndicator(env : Environment)
   + refresh(env : Environment) : void
@@ -254,7 +289,7 @@ class ConsoleView #E1BEE7 {
   + render(tick : int, grid : Grid) : void
   + printLegend() : void
   + printStats(tick : int, grid : Grid) : void
-  + startCommandListener(env, ctrl) : void
+  + startCommandListener(env : Environment, ctrl : SimulationController) : void
 }
 
 ' ───────────────────────────────────────────────
@@ -265,12 +300,18 @@ Cell --> CellType
 
 Environment --> WindDirection
 
+Cell ..|> Serializable
+Environment ..|> Serializable
+SimulationSnapshot ..|> Serializable
+
 Grid "1" *--> "1..*" Cell : cells[][]
 
 FireSimulator "1" o--> "1" Grid
 FireSimulator "1" o--> "1" Environment
 FireSimulator "1" o--> "*" SimulationListener : listeners
 FireSimulator ..> SimulationSnapshot : <<crée>>
+SimulationSnapshot --> WindDirection
+SimulationSnapshot "1" *--> "*" Cell : cells[][]
 
 SimulationIO ..> SimulationSnapshot : <<utilise>>
 
@@ -281,7 +322,11 @@ SimulationController ..> SimulationIO : <<utilise>>
 GridView ..|> SimulationListener
 StatisticsPanel ..|> SimulationListener
 ChartView ..|> SimulationListener
-ConsoleView ..|> SimulationListener
+HeaderBar ..|> SimulationListener
+
+ConsoleView ..> Grid : <<affiche>>
+ConsoleView ..> SimulationController : <<commande>>
+ConsoleView ..> Environment : <<modifie>>
 
 MainWindow o--> SimulationController
 MainWindow o--> FireSimulator
@@ -290,5 +335,12 @@ MainWindow o--> StatisticsPanel
 MainWindow o--> ChartView
 MainWindow o--> LegendPanel
 MainWindow o--> WindIndicator
+MainWindow o--> HeaderBar
+WindIndicator --> Environment
+
+Main ..> MainWindow : <<GUI>>
+Main ..> ConsoleView : <<CLI>>
+Main ..> FireSimulator : <<crée>>
+Main ..> SimulationController : <<crée>>
 
 @enduml
