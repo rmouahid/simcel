@@ -69,6 +69,23 @@ enum SimulationState #FFF8DC {
   PAUSED
 }
 
+enum "MainWindow.EditTool" as EditTool #FFF8DC {
+  FORET
+  PRAIRIE
+  BROUSSAILLES
+  ZONE_HUMIDE
+  ZONE_URBAINE
+  VIDE
+  EAU
+  ROCHER
+  FOYER
+  ..
+  ~ label : String
+  ~ bgColor : String
+  ~ fgColor : String
+  ~ createCell() : Cell
+}
+
 ' ───────────────────────────────────────────────
 ' INTERFACE
 ' ───────────────────────────────────────────────
@@ -81,7 +98,7 @@ interface Serializable <<java.io>> #EEEEEE
 ' ───────────────────────────────────────────────
 ' POINT D'ENTRÉE
 ' ───────────────────────────────────────────────
-class Main #EEEEEE {
+class Main <<Application>> #EEEEEE {
   ..
   + start(stage : Stage) : void
   + {static} main(args : String[]) : void
@@ -336,6 +353,10 @@ MainWindow o--> ChartView
 MainWindow o--> LegendPanel
 MainWindow o--> WindIndicator
 MainWindow o--> HeaderBar
+MainWindow +-- EditTool : enum privée
+EditTool ..> Cell : <<crée>>
+EditTool --> CellType
+EditTool --> CellState
 WindIndicator --> Environment
 
 Main ..> MainWindow : <<GUI>>
