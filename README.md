@@ -215,7 +215,13 @@ Sources PlantUML dans [`docs/uml/puml/`](docs/uml/puml/), images générées dan
 
 ### Diagramme de classes
 
-![Diagramme de classes](docs/uml/diagramme_classes.png)
+![Diagramme de classes final](docs/uml/puml/diagramme_classes.svg)
+
+L'export inclut l'énumération privée `MainWindow.EditTool`. Pour le régénérer :
+
+```bash
+plantuml -charset UTF-8 -tsvg docs/uml/puml/diagramme_classes.puml
+```
 
 ### Cas d'utilisation
 
