@@ -76,7 +76,7 @@ public class FireSimulator {
      * après la phase de calcul, garantissant l'indépendance des décisions par
      * rapport à l'ordre de parcours des cellules.</p>
      */
-    public void tick() {
+    public synchronized void tick() {
         pushHistory();
         CellState[][] snapshot = takeSnapshot();
 
@@ -144,7 +144,7 @@ public class FireSimulator {
      *
      * @param listener observateur à ajouter, non {@code null}
      */
-    public void addListener(SimulationListener listener) {
+    public synchronized void addListener(SimulationListener listener) {
         listeners.add(listener);
     }
 
@@ -157,7 +157,7 @@ public class FireSimulator {
      *
      * @return {@code true} si un état précédent a été restauré
      */
-    public boolean stepBack() {
+    public synchronized boolean stepBack() {
         if (history.isEmpty()) return false;
         Cell[][] prev = history.pop();
         int w = grid.getWidth();
@@ -171,10 +171,18 @@ public class FireSimulator {
     }
 
     /**
+     * Restaure la grille initiale et efface l'historique.
+     */
+    public synchronized void reset() {
+        grid.reset();
+        clearHistory();
+    }
+
+    /**
      * Vide l'historique des états sauvegardés.
      * À appeler lors d'un reset pour éviter de revenir à des états pré-reset.
      */
-    public void clearHistory() {
+    public synchronized void clearHistory() {
         history.clear();
     }
 
@@ -183,7 +191,7 @@ public class FireSimulator {
      *
      * @return immutable snapshot capturing grid, environment and tick
      */
-    public SimulationSnapshot createSnapshot() {
+    public synchronized SimulationSnapshot createSnapshot() {
         return new SimulationSnapshot(
                 grid.getWidth(), grid.getHeight(),
                 grid.copyCells(), grid.copyInitialCells(),
@@ -198,7 +206,7 @@ public class FireSimulator {
      * @param snapshot snapshot to restore, must match current grid dimensions
      * @throws IllegalArgumentException if grid dimensions do not match
      */
-    public void applySnapshot(SimulationSnapshot snapshot) {
+    public synchronized void applySnapshot(SimulationSnapshot snapshot) {
         if (snapshot.getWidth() != grid.getWidth() || snapshot.getHeight() != grid.getHeight()) {
             throw new IllegalArgumentException("Snapshot grid dimensions do not match current grid");
         }
