@@ -180,6 +180,7 @@ class FireSimulator #C8E6C9 {
   + getEnvironment() : Environment
   + addListener(l : SimulationListener) : void
   + stepBack() : boolean
+  + reset() : void
   + clearHistory() : void
   + createSnapshot() : SimulationSnapshot
   + applySnapshot(s : SimulationSnapshot) : void
