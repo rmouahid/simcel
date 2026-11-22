@@ -22,6 +22,7 @@ import com.simcel.model.SimulationState;
  */
 public class SimulationController {
 
+    // Le moniteur du simulateur protège aussi les transitions et la boucle.
     private final FireSimulator simulator;
     private SimulationState state;
     private int tickDelay;
@@ -44,9 +45,11 @@ public class SimulationController {
      * déjà {@link SimulationState#RUNNING}.
      */
     public void start() {
-        if (state == SimulationState.RUNNING) return;
-        state = SimulationState.RUNNING;
-        startThread();
+        synchronized (simulator) {
+            if (state == SimulationState.RUNNING) return;
+            state = SimulationState.RUNNING;
+            startThread();
+        }
     }
 
     /**
@@ -54,9 +57,11 @@ public class SimulationController {
      * n'est pas {@link SimulationState#RUNNING}.
      */
     public void pause() {
-        if (state != SimulationState.RUNNING) return;
-        state = SimulationState.PAUSED;
-        stopThread();
+        synchronized (simulator) {
+            if (state != SimulationState.RUNNING) return;
+            state = SimulationState.PAUSED;
+            stopThread();
+        }
     }
 
     /**
@@ -64,8 +69,10 @@ public class SimulationController {
      * est {@link SimulationState#RUNNING}.
      */
     public void step() {
-        if (state == SimulationState.RUNNING) return;
-        simulator.tick();
+        synchronized (simulator) {
+            if (state == SimulationState.RUNNING) return;
+            simulator.tick();
+        }
     }
 
     /**
@@ -74,8 +81,10 @@ public class SimulationController {
      * initial.
      */
     public void stop() {
-        stopThread();
-        state = SimulationState.IDLE;
+        synchronized (simulator) {
+            stopThread();
+            state = SimulationState.IDLE;
+        }
     }
 
     /**
@@ -83,9 +92,10 @@ public class SimulationController {
      * {@link SimulationState#IDLE}.
      */
     public void reset() {
-        stop();
-        simulator.getGrid().reset();
-        simulator.clearHistory();
+        synchronized (simulator) {
+            stop();
+            simulator.reset();
+        }
     }
 
     /**
@@ -95,8 +105,10 @@ public class SimulationController {
      * @return {@code true} si un état précédent a été restauré
      */
     public boolean stepBack() {
-        if (state == SimulationState.RUNNING) return false;
-        return simulator.stepBack();
+        synchronized (simulator) {
+            if (state == SimulationState.RUNNING) return false;
+            return simulator.stepBack();
+        }
     }
 
     /**
@@ -106,10 +118,12 @@ public class SimulationController {
      * @param ms nouvel intervalle en millisecondes (&gt; 0)
      */
     public void setTickDelay(int ms) {
-        tickDelay = ms;
-        if (state == SimulationState.RUNNING) {
-            stopThread();
-            startThread();
+        synchronized (simulator) {
+            tickDelay = ms;
+            if (state == SimulationState.RUNNING) {
+                stopThread();
+                startThread();
+            }
         }
     }
 
@@ -119,7 +133,9 @@ public class SimulationController {
      * @return délai en millisecondes
      */
     public int getTickDelay() {
-        return tickDelay;
+        synchronized (simulator) {
+            return tickDelay;
+        }
     }
 
     /**
@@ -128,7 +144,9 @@ public class SimulationController {
      * @return état, jamais {@code null}
      */
     public SimulationState getState() {
-        return state;
+        synchronized (simulator) {
+            return state;
+        }
     }
 
     /**
@@ -151,20 +169,28 @@ public class SimulationController {
      * @throws IllegalArgumentException si les dimensions de la grille diffèrent
      */
     public void loadFromFile(File file) throws IOException, ClassNotFoundException {
-        if (state == SimulationState.RUNNING) pause();
-        SimulationSnapshot snapshot = SimulationIO.load(file);
-        simulator.applySnapshot(snapshot);
-        state = SimulationState.PAUSED;
+        synchronized (simulator) {
+            if (state == SimulationState.RUNNING) pause();
+            SimulationSnapshot snapshot = SimulationIO.load(file);
+            simulator.applySnapshot(snapshot);
+            state = SimulationState.PAUSED;
+        }
     }
 
     // -------------------------------------------------------------------------
 
     private void startThread() {
         simulationThread = new Thread(() -> {
-            while (!Thread.currentThread().isInterrupted()) {
-                simulator.tick();
+            while (true) {
+                int delay;
+                synchronized (simulator) {
+                    // Un thread remplacé peut encore attendre l'accès au moniteur.
+                    if (simulationThread != Thread.currentThread()) return;
+                    simulator.tick();
+                    delay = tickDelay;
+                }
                 try {
-                    Thread.sleep(tickDelay);
+                    Thread.sleep(delay);
                 } catch (InterruptedException e) {
                     break;
                 }

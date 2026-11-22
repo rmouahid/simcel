@@ -8,6 +8,7 @@ import com.simcel.model.Environment;
 import com.simcel.model.FireSimulator;
 import com.simcel.model.Grid;
 import com.simcel.model.SimulationListener;
+import com.simcel.model.SimulationState;
 import javafx.application.Platform;
 import javafx.geometry.Bounds;
 import javafx.geometry.Insets;
@@ -596,8 +597,14 @@ public class MainWindow {
     private SimulationListener stoppingListener() {
         return (tick, g) -> {
             if (!hasActiveFire(g)) {
-                controller.stop();
-                Platform.runLater(this::setIdleState);
+                Platform.runLater(() -> {
+                    if (g != grid) return;
+                    synchronized (simulator) {
+                        if (controller.getState() != SimulationState.RUNNING || hasActiveFire(g)) return;
+                        controller.stop();
+                    }
+                    setIdleState();
+                });
             }
         };
     }
